@@ -7,7 +7,7 @@ import hashlib
 from wtforms import Form,StringField,TextAreaField,PasswordField,validators
 from passlib.hash import sha256_crypt
 from data import *
-DATABASE = 'database1.db'
+DATABASE = 'database3.db'
 
 app = Flask(__name__)
 app.secret_key = "myfirstdbkey"
@@ -18,7 +18,7 @@ conn.execute('CREATE TABLE IF NOT EXISTS USER (UID INTEGER PRIMARY KEY AUTOINCRE
 conn.execute('CREATE TABLE IF NOT EXISTS AUTHOR (AID INTEGER PRIMARY KEY AUTOINCREMENT,NAME VARCHAR(10) NOT NULL,EMAIL VARCHAR(50),ADDRESS VARCHAR(100) ) ')
 conn.execute('CREATE TABLE IF NOT EXISTS PUBLISHER (PID INTEGER PRIMARY KEY AUTOINCREMENT,NAME VARCHAR(10) NOT NULL,EMAIL VARCHAR(50),ADDRESS VARCHAR(100) ) ')
 conn.execute('CREATE TABLE IF NOT EXISTS WRITE (BID INTEGER,AID INTEGER,FOREIGN KEY(BID) REFERENCES BOOK(BID),FOREIGN KEY(AID) REFERENCES AUTHOR(AID))')
-conn.execute('CREATE TABLE IF NOT EXISTS BOOK (BID INTEGER PRIMARY KEY AUTOINCREMENT,TITLE VARCHAR(30) NOT NULL,LANGUAGE VARCHAR(10) NOT NULL,TYPE VARCHAR(20) NOT NULL,SHELF_NO INTEGER(5) NOT NULL,ATID INTEGER NOT NULL,PBID INTEGER NOT NULL,FOREIGN KEY(ATID) REFERENCES AUTHOR(AID),FOREIGN KEY(PBID) REFERENCES PUBLISHER(PID) )')
+conn.execute('CREATE TABLE IF NOT EXISTS BOOK (BID INTEGER PRIMARY KEY AUTOINCREMENT,TITLE VARCHAR(30) NOT NULL,LANGUAGE VARCHAR(10) NOT NULL,BOOKCNT INTEGER DEFAULT 0,TYPE VARCHAR(20) NOT NULL,SHELF_NO VARCHAR(5) NOT NULL,ATID INTEGER NOT NULL,PBID INTEGER NOT NULL,FOREIGN KEY(ATID) REFERENCES AUTHOR(AID),FOREIGN KEY(PBID) REFERENCES PUBLISHER(PID) )')
 conn.execute('CREATE TABLE IF NOT EXISTS BORROWS (TID INTEGER PRIMARY KEY AUTOINCREMENT,UID INTEGER NOT NULL ,BID INTEGER NOT NULL,DUE_MONEY INTEGER(1000),ADDRESS VARCHAR(100),FOREIGN KEY(UID) REFERENCES USER(UID),FOREIGN KEY(BID) REFERENCES BOOK(BID) ) ')
 # c.execute('SELECT * FROM blog;')
 
@@ -40,19 +40,26 @@ class FRB(Form):
     UID = StringField('UID',[validators.DataRequired()])
 
 class BOOK(Form):
-    TITLE = StringField('TITLE',[validate.DataRequired()])
-    LANGUAGE =StringField('LANGUAGE',[validate.DataRequired()],)
-    TYPE = StringField('TYPE',[validate.DataRequired()])
-    SHELF = StringField('SHELF',[validate.DataRequired()])
-    AUTHOR = StringField('AUTHOR',[validate.DataRequired()])
-    PUBLISHER = StringField('PUBLISHER',[validate.DataRequired()])
+    TITLE = StringField('TITLE',[validators.DataRequired()])
+    LANGUAGE =StringField('LANGUAGE',[validators.DataRequired(),validators.AnyOf(['EN','HN','GUJ'])])
+    TYPE = StringField('TYPE',[validators.DataRequired(),validators.AnyOf(['SCI','MAT','ENG','COM'])])
+    SHELF = StringField('SHELF',[validators.DataRequired()])
+    AUTHOR = StringField('AUTHOR',[validators.DataRequired()])
+    BOOKCNT = StringField('BOOKCNT',[validators.DataRequired()])
+    PUBLISHER = StringField('PUBLISHER',[validators.DataRequired()])
 
-@app.route('/bokreg',methods=['GET','POST'])
-def bokreg():
+class AUTHOR(Form):
+    NAME=StringField('NAME',[validators.DataRequired()])
+    EMAIL=StringField('EMAIL',[validators.DataRequired()])
+    ADDRESS=StringField('ADDRESS',[validators.DataRequired()])
+
+@app.route('/adbok',methods=['GET','POST'])
+
+def adbok():
     if session.get('loggedin') == False:
         return "<script>alert('you are NOT logged in');window.location='/'</script>"
-    else
-        form = RegisterForm(request.form)
+    else:
+        form = BOOK(request.form)
         if request.method == 'POST' and form.validate():
             with sqlite3.connect(DATABASE) as conn:
                 cur=conn.cursor()
@@ -60,9 +67,80 @@ def bokreg():
                 LANGUAGE = request.form['LANGUAGE']
                 TYPE = request.form['TYPE']
                 SHELF = request.form['SHELF']
-                #here more than one Author can be there we will do it tomorrow
+                BOOK_COUNT = request.form['BOOKCNT']
                 AUTHOR = request.form['AUTHOR']
                 PUBLISHER = request.form['PUBLISHER']
+                cur= conn.cursor()
+                data = cur.execute('SELECT NAME FROM AUTHOR WHERE NAME=?;',(AUTHOR,))
+                data = data.fetchall()
+                if len(data)==0:
+                    return "<script>alert('Author is not Known');</script>"
+                data  = cur.execute('SELECT * FROM PUBLISHER WHERE NAME=?;',(PUBLISHER,))
+                data = data.fetchall()
+                if len(data)==0:
+                    return "<script>alert('PUBLISHER is not Known');</script>"
+                AID = cur.execute('SELECT AID FROM AUTHOR WHERE NAME = ?;',(AUTHOR,))
+                AID = cur.fetchone()[0]
+                PID = cur.execute('SELECT PID FROM PUBLISHER WHERE NAME = ?;',(PUBLISHER,))
+                PID = cur.fetchone()[0]
+                cur.execute('INSERT INTO BOOK(TITLE,LANGUAGE,BOOKCNT,TYPE,SHELF_NO,ATID,PBID) VALUES(?,?,?,?,?,?,?);',(TITLE,LANGUAGE,int(BOOK_COUNT),TYPE,SHELF,int(AID),int(PID)))
+                conn.commit()
+                return "<script>alert('Successfully Added In');window.location='/'</script>"
+                conn.close()
+        else:
+            return render_template ('adbok.html',form=form)
+
+@app.route('/adauth',methods=['GET','POST'])
+def adauth():
+    if session.get('loggedin')==False:
+        return "<script>alert('you are already logged in');window.location='/login'</script>"
+    else:
+        form = AUTHOR(request.form)
+        if request.method == 'POST' and form.validate():
+            with sqlite3.connect(DATABASE) as conn:
+                cur = conn.cursor()
+                NAME = request.form['NAME']
+                EMAIL = request.form['EMAIL']
+                ADDRESS = request.form['ADDRESS']
+                print(NAME)
+                print(EMAIL)
+                data = cur.execute('SELECT * FROM AUTHOR WHERE NAME=?;',(NAME,))
+                data = data.fetchall()
+                if len(data)!=0:
+                    return "<script>alert('Author is Known'); window.location='/adauth'</script>"
+                cur.execute('INSERT INTO AUTHOR(NAME,EMAIL,ADDRESS) VALUES(?,?,?);',(NAME,EMAIL,ADDRESS))
+                conn.commit()
+                print("dhvanil")
+                return "<script>alert('Successfully Logged In');window.location='/'</script>"
+                conn.close()
+        else:
+            return render_template('adauth.html',form = form)
+
+
+@app.route('/adpub',methods=['GET','POST'])
+def adpub():
+    form = AUTHOR(request.form)
+    if session.get('loggedin')==False:
+        return "<script>alert('you are already logged in');window.location='/login'</script>"
+    else:
+        if request.method == 'POST' and form.validate():
+            with sqlite3.connect(DATABASE) as conn:
+                cur = conn.cursor()
+                NAME = request.form['NAME']
+                EMAIL = request.form['EMAIL']
+                ADDRESS = request.form['ADDRESS']
+                print(NAME)
+                data = cur.execute('SELECT * FROM PUBLISHER WHERE NAME=?;',(NAME,))
+                data = data.fetchall()
+                if len(data)!=0:
+                    return "<script>alert('Author is Known'); window.location='/adpub'</script>"
+                cur.execute('INSERT INTO PUBLISHER(NAME,EMAIL,ADDRESS) VALUES(?,?,?);',(NAME,EMAIL,ADDRESS))
+                conn.commit()
+                print("dhvanil")
+                return "<script>alert('Successfully Logged In');window.location='/'</script>"
+                conn.close()
+        else:
+            return render_template('adpub.html',form = form)
 
 @app.route('/frb',methods=['GET','POST'])
 def frb():
