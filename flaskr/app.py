@@ -129,89 +129,93 @@ def aduser():
 @app.route('/frb',methods=['GET','POST'])
 def frb():
     form = FRB(request.form)
-    if session.get('loggedin')==True and form.validate() and (request.method=='POST' or request.method=='GET'):
-        BOOKID = request.form['BOOKID']
-        UID = request.form['UID']
-        FETCH_RETURN_BORROW = request.form['FETCH_RETURN_BORROW']
-        print(FETCH_RETURN_BORROW)
-        if FETCH_RETURN_BORROW=='B':
-            print("bbbb")
-            with sqlite3.connect(DATABASE) as conn:
-                print('bbbb')
-                TODAY = str(date.today())
-                cur = conn.cursor()
-                p=cur.execute('SELECT * FROM BOOK WHERE BID = ?',(int(BOOKID),))
-                p=cur.fetchall()
-                q=cur.execute('SELECT * FROM USER WHERE UID = ?',(int(UID),))
-                q=cur.fetchall()
-                if len(p)>0 and len(q)>0:
-                    z=cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
-                    z=cur.fetchone()[0]
-                    y=cur.execute('SELECT BOOKCNT FROM USER WHERE UID = ?',(UID,))
-                    y=cur.fetchone()[0]
-                    if z>0 and y<=4:
-                        cur.execute('UPDATE USER SET BOOKCNT=(SELECT BOOKCNT FROM USER WHERE UID=?)+1 WHERE UID=?',(UID,UID))
-                        cur.execute('UPDATE BOOK SET BOOKCNT=(SELECT BOOKCNT FROM BOOK WHERE BID=?)-1 WHERE BID=?',(BOOKID,BOOKID))
-                        cur.execute('INSERT INTO BORROWS (UID,BID,STARTDATE) VALUES (?,?,?)',(int(UID),int(BOOKID),TODAY))
-                        conn.commit()
-                        return "<script>alert('Successfully added');window.location='/frb'</script>"
-                    elif z<=0:
+    if session.get('loggedin')==True :
+        if form.validate():
+            BOOKID = request.form['BOOKID']
+            UID = request.form['UID']
+            FETCH_RETURN_BORROW = request.form['FETCH_RETURN_BORROW']
+            print(FETCH_RETURN_BORROW)
+            if FETCH_RETURN_BORROW=='B':
+                print("bbbb")
+                with sqlite3.connect(DATABASE) as conn:
+                    print('bbbb')
+                    TODAY = str(date.today())
+                    cur = conn.cursor()
+                    p=cur.execute('SELECT * FROM BOOK WHERE BID = ?',(int(BOOKID),))
+                    p=cur.fetchall()
+                    q=cur.execute('SELECT * FROM USER WHERE UID = ?',(int(UID),))
+                    q=cur.fetchall()
+                    if len(p)>0 and len(q)>0:
+                        z=cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
+                        z=cur.fetchone()[0]
+                        y=cur.execute('SELECT BOOKCNT FROM USER WHERE UID = ?',(UID,))
+                        y=cur.fetchone()[0]
+                        if z>0 and y<=4:
+                            cur.execute('UPDATE USER SET BOOKCNT=(SELECT BOOKCNT FROM USER WHERE UID=?)+1 WHERE UID=?',(UID,UID))
+                            cur.execute('UPDATE BOOK SET BOOKCNT=(SELECT BOOKCNT FROM BOOK WHERE BID=?)-1 WHERE BID=?',(BOOKID,BOOKID))
+                            cur.execute('INSERT INTO BORROWS (UID,BID,STARTDATE) VALUES (?,?,?)',(int(UID),int(BOOKID),TODAY))
+                            conn.commit()
+                            return "<script>alert('Successfully added');window.location='/frb'</script>"
+                        elif z<=0:
+                            return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
+                        else:
+                            return "<script>alert('MAXIMUM BORROWED BOOKS =3');window.location='/frb'</script>"
+                    elif len(p)<=0:
                         return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
-                    else:
-                        return "<script>alert('MAXIMUM BORROWED BOOKS =3');window.location='/frb'</script>"
-                elif len(p)<=0:
-                    return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
-                else :
-                    return "<script>alert('USER NOT AVALIABLE');window.location='/frb'</script>"
-            return "hi"
-            conn.close()
-        elif FETCH_RETURN_BORROW =='R':
-            print("rrrr")
-            with sqlite3.connect(DATABASE) as conn:
-                print('rrrr')
-                TODAY = str(date.today())
-                cur = conn.cursor()
-                p=cur.execute('SELECT * FROM BOOK WHERE BID = ?',(int(BOOKID),))
-                p=cur.fetchall()
-                q=cur.execute('SELECT * FROM USER WHERE UID = ?',(int(UID),))
-                q=cur.fetchall()
-                if len(p)>0 and len(q)>0:
-                    z=cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
-                    z=cur.fetchone()[0]
-                    y=cur.execute('SELECT BOOKCNT FROM USER WHERE UID = ?',(UID,))
-                    y=cur.fetchone()[0]
-                    if y>0:
-                        cnt= cur.execute('SELECT BOOKCNT FROM USER WHERE UID = ?',(UID,))
-                        cnt= cur.fetchone()[0]
-                        cnt2 =cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
-                        cnt2= cur.fetchone()[0]
-                        cur.execute('UPDATE USER SET BOOKCNT=? WHERE UID=?',(int(cnt)+1,UID))
-                        cur.execute('UPDATE BOOK SET BOOKCNT=? WHERE BID=?',(int(cnt)-1,BOOKID))
-                        cur.execute('UPDATE BORROWS SET ENDDATE=? WHERE UID=? AND BID = ?',(TODAY,int(UID),int(BOOKID)))
-                        d =  cur.execute('SELECT STARTDATE FROM BORROWS WHERE UID=? AND BID = ? ORDER BY TID DESC;',(int(UID),int(BOOKID)))
-                        d =  cur.fetchone()[0]
-                        print(str(d)+'')
-                        e =  cur.execute('SELECT ENDDATE FROM BORROWS WHERE UID=? AND BID = ? ORDER BY TID DESC',(int(UID),int(BOOKID)))
-                        e =  cur.fetchone()[0]
-                        d = datetime.strptime(d, "%Y-%m-%d")
-                        e = datetime.strptime(e, "%Y-%m-%d")
-                        s=abs((d-e).days)
-                        if s-15>0:
-                            s=s-15
-                        conn.commit()
-                        return "<script>alert('SUccessfully Returned Panelty = "+str(s)+"');window.location='/frb'</script>"
-                    else:
-                        return "<script>alert('NO BOOK BORROWED');window.location='/frb'</script>"
-                elif len(p)<=0:
-                    return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
-                else :
-                    return "<script>alert('USER NOT AVALIABLE');window.location='/frb'</script>"
-            return "hi2"
-            conn.close()
+                    else :
+                        return "<script>alert('USER NOT AVALIABLE');window.location='/frb'</script>"
+                    return "hi"
+                conn.close()
+            elif FETCH_RETURN_BORROW =='R':
+                print("rrrr")
+                with sqlite3.connect(DATABASE) as conn:
+                    print('rrrr')
+                    TODAY = str(date.today())
+                    cur = conn.cursor()
+                    p=cur.execute('SELECT * FROM BOOK WHERE BID = ?',(int(BOOKID),))
+                    p=cur.fetchall()
+                    q=cur.execute('SELECT * FROM USER WHERE UID = ?',(int(UID),))
+                    q=cur.fetchall()
+                    if len(p)>0 and len(q)>0:
+                        z=cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
+                        z=cur.fetchone()[0]
+                        y=cur.execute('SELECT BOOKCNT FROM USER WHERE UID = ?',(UID,))
+                        y=cur.fetchone()[0]
+                        if y>0:
+                            cnt= cur.execute('SELECT BOOKCNT FROM USER WHERE UID = ?',(UID,))
+                            cnt= cur.fetchone()[0]
+                            cnt2 =cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
+                            cnt2= cur.fetchone()[0]
+                            cur.execute('UPDATE USER SET BOOKCNT=? WHERE UID=?',(int(cnt)+1,UID))
+                            cur.execute('UPDATE BOOK SET BOOKCNT=? WHERE BID=?',(int(cnt)-1,BOOKID))
+                            cur.execute('UPDATE BORROWS SET ENDDATE=? WHERE UID=? AND BID = ?',(TODAY,int(UID),int(BOOKID)))
+                            d =  cur.execute('SELECT STARTDATE FROM BORROWS WHERE UID=? AND BID = ? ORDER BY TID DESC;',(int(UID),int(BOOKID)))
+                            d =  cur.fetchone()[0]
+                            print(str(d)+'')
+                            e =  cur.execute('SELECT ENDDATE FROM BORROWS WHERE UID=? AND BID = ? ORDER BY TID DESC',(int(UID),int(BOOKID)))
+                            e =  cur.fetchone()[0]
+                            d = datetime.strptime(d, "%Y-%m-%d")
+                            e = datetime.strptime(e, "%Y-%m-%d")
+                            s=abs((d-e).days)
+                            if s-15>0:
+                                s=s-15
+                            conn.commit()
+                            return "<script>alert('SUccessfully Returned Panelty = "+str(s)+"');window.location='/frb'</script>"
+                        else:
+                            return "<script>alert('NO BOOK BORROWED');window.location='/frb'</script>"
+                    elif len(p)<=0:
+                        return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
+                    else :
+                        return "<script>alert('USER NOT AVALIABLE');window.location='/frb'</script>"
+                    return "hi2"
+                conn.close()
+            else:
+                return "<script>alert('Enter Data wisely');window.location='/frb'</script>"
         else:
-            return "<script>alert('Enter Data wisely');window.location='/login'</script>"
+            form=FRB(request.form)
+            return render_template('frb.html',form=form)
     else:
-        return render_template('frb.html',form=form)
+        return "<script>alert('you are not logged in ');window.location='/'</script>"
 
 @app.route('/search',methods=['GET','POST'])
 def search():
@@ -224,7 +228,7 @@ def search():
             conn1 = sqlite3.connect(DATABASE)
             cur1= conn1.cursor()
             SQL = cur1.execute('SELECT * FROM BOOK WHERE TITLE LIKE ?',('%'+SEARCHHERE+'%',))
-            SQL = cur1.fetchone()
+            SQL = cur1.fetchall()
             print(SQL)
             print('RRRRRRRRRRRRR')
             return render_template('SearchBook.html',form = form2,data=SQL)
@@ -403,6 +407,15 @@ def login():
                     return render_template('login.html',form=form2)
         else:
             return render_template('login.html',form = form2)
+@app.route('/userbook')
+def userbook():
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    data=cur.execute('SELECT * FROM USER')
+    data=cur.fetchall()
+    data2=cur.execute('SELECT * FROM BOOK')
+    data2=cur.fetchall()
+    return render_template('userbook.html',data=data,data2=data2)
 
 if __name__ == '__main__':
     app.run(port=5001,debug = True)

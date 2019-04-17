@@ -24,14 +24,16 @@
 <body class="wrapper">
   <p style="margin-left: 45%; font-size: 2em;">LIBRARY Management</p>
   <div class="loginbox">
-<a href="/register">  <button type="button" onclick="{{ url_for('register')}}">SignUp</button></a><br>
-<a href="/login">  <button type="button">login</button></a><br>
-<a href="/frb"> <button type="button">Fetch/Return/Borrow</button></a><br>
-<a href="/logout"> <button type="button">Logout </button></a><br>
-<a href="/adbok"> <button type="button"> Add Book</button></a><br>
-<a href="/adauth"> <button type="button"> Add Author </button></a><br>
-<a href="/adpub"> <button type="button"> Add Publisher </button></a>
-<a href="/aduser"> <button type="button"> Add User</button></a>
+    <p>status = {% if session.get('loggedin'): %}LOGGED IN{% else: %}NOT LOGGED IN {% endif %}
+<a href="/login">  <button type="button" class="btn btn-info active">login</button></a><br>
+<a href="/frb"> <button type="button" class="btn btn-info active">Fetch/Return/Borrow</button></a><br>
+<a href="/logout"> <button type="button" class="btn btn-info active">Logout </button></a><br>
+<a href="/adbok"> <button type="button" class="btn btn-info active"> Add Book</button></a><br>
+<a href="/adauth"> <button type="button" class="btn btn-info active"> Add Author </button></a><br>
+<a href="/adpub"> <button type="button" class="btn btn-info active"> Add Publisher </button></a>
+<a href="/aduser"> <button type="button" class="btn btn-info active"> Add User</button></a>
+<a href="/userbook"> <button type="button" class="btn btn-info active">SHOW USER/BOOK</button></a>
+
 </div>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
