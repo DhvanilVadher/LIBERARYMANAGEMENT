@@ -1,0 +1,38 @@
+<<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      .wrapper{
+        background-image: linear-gradient(rgba(25, 56, 230, 0.5),rgba(125, 156, 130, 0.5));
+      }
+      .loginbox{
+        width: 500px;
+        height: 500px;
+        margin-left: 30%;
+        margin-top: 10%;
+        border: 1px solid black;
+      }
+    </style>
+    <title>SearchBook</title>
+  </head>
+  <body class='wrapper'>
+    {% from "_helperclass.html" import render_field %}
+    <div class="loginbox">
+    {% if data!=NULL : %}
+    <h3 style="">Search Book here</h3>
+    <tr>
+    <td>BOOK ID = {{data[0]}}</td>
+    <td>BOOK NAME = {{data[1]}}</td>
+    <td>BOOK CNT = {{data[3]}}</td>
+    <td>BOOK LANGUAGE = {{data[2]}}</td>
+    {% endif %}
+    <Form method="POST">
+      <div class='form-group'>
+       {{render_field(form.SEARCHHERE,class_="form-control")}}
+     </div>
+     <input type="submit" class='btn-btn-primary' bname="b2" value="return">
+    </Form>
+  </div>
+  </body>
+</html>
