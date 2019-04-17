@@ -213,8 +213,25 @@ def frb():
                 conn = sqlite3.connect(DATABASE)
                 cur= conn.cursor()
                 TODAY = str(date.today())
+                e=str(datetime.date(datetime.now()))
+                print(e)
+                d =  cur.execute('SELECT STARTDATE FROM BORROWS WHERE UID=? AND BID = ? ORDER BY TID DESC;',(int(UID),int(BOOKID)))
+                d =  cur.fetchone()[0]
+                print(d)
+                d = datetime.strptime(d, "%Y-%m-%d")
+                print('aaa')
+                e = datetime.strptime(e, "%Y-%m-%d")
+                print('aaa')
+                s=abs((d-e).days)
+                print('aaa')
+                if s-15>0:
+                    s=s-15
                 cur.execute('UPDATE BORROWS SET STARTDATE=? WHERE UID = ? AND BID = ?',(TODAY,int(UID),int(BOOKID)))
-                return "<script>alert('RENUE Done');window.location='/frb'</script>"
+                conn.commit()
+                print('aaa')
+                return "<script>alert('SUccessfully Returned Panelty = "+str(s)+"');window.location='/frb'</script>"
+                print
+                conn.close()
         else:
             form=FRB(request.form)
             return render_template('frb.html',form=form)
