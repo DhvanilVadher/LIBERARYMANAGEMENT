@@ -25,6 +25,9 @@
     {% if data!=NULL : %}
     <h3 style="">Search Book here</h3>
     {% for result in data %}
+          <th>Book ID</th>
+          <th>Book Name</th>
+          <th>Book Count Available</th>
         <tr>
             <td>{{ result[0] }}</td>
             <td>{{ result[1] }}</td>

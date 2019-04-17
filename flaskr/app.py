@@ -8,7 +8,7 @@ from wtforms import Form,StringField,TextAreaField,PasswordField,validators
 from passlib.hash import sha256_crypt
 from data import *
 from datetime import date,datetime
-DATABASE = 'database4.db'
+DATABASE = 'database5.db'
 app = Flask(__name__)
 app.secret_key = "myfirstdbkey"
 conn = sqlite3.connect(DATABASE)
@@ -159,7 +159,7 @@ def frb():
                         elif z<=0:
                             return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
                         else:
-                            return "<script>alert('MAXIMUM BORROWED BOOKS =3');window.location='/frb'</script>"
+                            return "<script>alert('MAXIMUM BORROWED BOOKS = 5');window.location='/frb'</script>"
                     elif len(p)<=0:
                         return "<script>alert('BOOK NOT AVALIABLE');window.location='/frb'</script>"
                     else :
@@ -186,8 +186,8 @@ def frb():
                             cnt= cur.fetchone()[0]
                             cnt2 =cur.execute('SELECT BOOKCNT FROM BOOK WHERE BID = ?',(BOOKID,))
                             cnt2= cur.fetchone()[0]
-                            cur.execute('UPDATE USER SET BOOKCNT=? WHERE UID=?',(int(cnt)+1,UID))
-                            cur.execute('UPDATE BOOK SET BOOKCNT=? WHERE BID=?',(int(cnt)-1,BOOKID))
+                            cur.execute('UPDATE USER SET BOOKCNT=? WHERE UID=?',((int(cnt)-1),UID))
+                            cur.execute('UPDATE BOOK SET BOOKCNT=? WHERE BID=?',((int(cnt)+1),BOOKID))
                             cur.execute('UPDATE BORROWS SET ENDDATE=? WHERE UID=? AND BID = ?',(TODAY,int(UID),int(BOOKID)))
                             d =  cur.execute('SELECT STARTDATE FROM BORROWS WHERE UID=? AND BID = ? ORDER BY TID DESC;',(int(UID),int(BOOKID)))
                             d =  cur.fetchone()[0]
@@ -210,7 +210,11 @@ def frb():
                     return "hi2"
                 conn.close()
             else:
-                return "<script>alert('Enter Data wisely');window.location='/frb'</script>"
+                conn = sqlite3.connect(DATABASE)
+                cur= conn.cursor()
+                TODAY = str(date.today())
+                cur.execute('UPDATE BORROWS SET STARTDATE=? WHERE UID = ? AND BID = ?',(TODAY,int(UID),int(BOOKID)))
+                return "<script>alert('RENUE Done');window.location='/frb'</script>"
         else:
             form=FRB(request.form)
             return render_template('frb.html',form=form)
@@ -407,6 +411,7 @@ def login():
                     return render_template('login.html',form=form2)
         else:
             return render_template('login.html',form = form2)
+
 @app.route('/userbook')
 def userbook():
     conn = sqlite3.connect(DATABASE)
